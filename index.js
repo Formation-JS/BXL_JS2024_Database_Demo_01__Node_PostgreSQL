@@ -82,6 +82,79 @@ const { Client } = pg;
 
     const demo03 = await client.query(request03);
     console.log(demo03.rows);
+    console.log();
+
+    
+    //! [Transaction] Ajouter un étudiant avec sa section
+    //? Une nouvelle etudiante
+    // const data = {
+    //     firstname: 'Della',
+    //     lastname: 'Duck',
+    //     yearResult: 17,
+    //     login: 'deduck',
+    //     courseId: '0',
+    //     sectionId: 1010,
+    //     sectionName: undefined // ← Uniquement pour les nouvelles sections 
+    // }
+
+    //? Une nouvelle etudiante avec une nouvelle section
+    // const data = {
+    //     firstname: 'Miss tick',
+    //     lastname: 'De sortilège',
+    //     yearResult: 3,
+    //     login: 'misstick',
+    //     courseId: '0',
+    //     sectionId: 1030,
+    //     sectionName: 'Magie'
+    // }
+
+    //? Un nouvel etudiant en ERREUR avec une nouvelle section
+    const data = {
+        firstname: 'Gontran',
+        lastname: 'Bonheur',
+        yearResult: 21,
+        login: 'bonheur',
+        courseId: undefined,
+        sectionId: 4242,
+        sectionName: 'Test'
+    }
+
+    try {
+        //? Debut de la transaction
+        await client.query('BEGIN');
+
+        // Check si la section existe
+        const demo04_1 = await client.query(
+            'SELECT * FROM section WHERE section_id = $1', 
+            [data.sectionId]
+        );
+
+        // Création de la section si elle n'existe pas !
+        if(demo04_1.rowCount === 0) {
+            await client.query(
+                'INSERT INTO section (section_id, section_name, delegate_id) VALUES ($1, $2, 1)',
+                [data.sectionId, data.sectionName]
+            );
+        }
+
+        await client.query(
+            ` INSERT INTO student (student_id, first_name, last_name, year_result, login, course_id, section_id)
+               VALUES ((SELECT MAX(student_id)+1 FROM student), $1, $2, $3, $4, $5, $6)`,
+            [data.firstname, data.lastname, data.yearResult, data.login, data.courseId, data.sectionId]
+        );
+
+        console.log('Insert finish !');
+
+        //? Validation de la transaction
+        await client.query('COMMIT');
+    }
+    catch (error) {
+        console.log(error);
+
+        //? Annulation de la transaction
+        await client.query('ROLLBACK');
+    }
+
     
     //! Fermer la connexion vers la DB
     await client.end();
