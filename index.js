@@ -31,6 +31,7 @@ const { Client } = pg;
     }
     console.log();
 
+
     //! [Parametre] Requete pour obtenir la liste des stagiaires sur base du prénom
     const cible1 = 'Tom'; // ← Donnée reçu (Cas réel : Param de route en express)
     const cible2 = 'Davit\' OR 1=1; --'
@@ -55,16 +56,32 @@ const { Client } = pg;
 
     //? Syntaxe alternative 
     /*
-    const request = {
+    const request02 = {
         text: ` SELECT first_name AS "fname", last_name AS "lname", year_result AS "result"
                 FROM student
                 WHERE first_name = $1 `,
         values: [cible2]
     };
-    const demo02_2 = await client.query(request);
+    const demo02_2 = await client.query(request02);
     */
+   console.log();
 
 
+    //! [Prepared Statement] Optimisation de requete
+    const minResult = 10;
+
+    const request03 = {
+        name: 'section-avg-result',
+        text: ` SELECT s.section_name, AVG(st.year_result) AS "avg_result"
+                FROM section s
+                 LEFT JOIN student st ON s.section_id = st.section_id
+                GROUP BY s.section_name
+                HAVING AVG(st.year_result) >= $1 `,
+        values: [minResult]
+    }
+
+    const demo03 = await client.query(request03);
+    console.log(demo03.rows);
     
     //! Fermer la connexion vers la DB
     await client.end();
