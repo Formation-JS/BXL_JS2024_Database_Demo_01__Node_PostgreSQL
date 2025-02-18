@@ -18,10 +18,10 @@ const { Client } = pg;
     //! Ouvrir la connexion vers la DB
     await client.connect();
     
-    //! Réaliser une requete pour afficher les sections
-    const sectionResult = await client.query('SELECT section_id, section_name FROM section');
+    //! [Simple] Réaliser une requete pour afficher les sections
+    const demo01 = await client.query('SELECT section_id, section_name FROM section');
 
-    const sections = sectionResult.rows.map((r => ({
+    const sections = demo01.rows.map((r => ({
         name: r.section_name,
         code: r.section_id
     })))
@@ -29,6 +29,42 @@ const { Client } = pg;
     for (const section of sections) {
         console.log(`${section.code} - ${section.name}`);
     }
+    console.log();
+
+    //! [Parametre] Requete pour obtenir la liste des stagiaires sur base du prénom
+    const cible1 = 'Tom'; // ← Donnée reçu (Cas réel : Param de route en express)
+    const cible2 = 'Davit\' OR 1=1; --'
+
+    // Pour construire la requete, il ne faut JAMAIS concaténer !!!!!!!!!!!!!!!!!!!
+    // À la place, vous pouvez utiliser des requetes parametré !
+    const demo02 = await client.query(`
+        SELECT first_name AS "fname", last_name AS "lname", year_result AS "result"
+        FROM student
+        WHERE first_name = $1
+    `, [cible2]);
+
+    if(demo02.rowCount > 0) {
+        console.log(`Nombre d'étudiant trouve : ${demo02.rowCount}`);
+        for(const student of demo02.rows) {
+            console.log(` - ${student.fname} ${student.lname} ${student.result}`);
+        }
+    }
+    else {
+        console.log('Aucun étudiant trouvé !!!');
+    }
+
+    //? Syntaxe alternative 
+    /*
+    const request = {
+        text: ` SELECT first_name AS "fname", last_name AS "lname", year_result AS "result"
+                FROM student
+                WHERE first_name = $1 `,
+        values: [cible2]
+    };
+    const demo02_2 = await client.query(request);
+    */
+
+
     
     //! Fermer la connexion vers la DB
     await client.end();
